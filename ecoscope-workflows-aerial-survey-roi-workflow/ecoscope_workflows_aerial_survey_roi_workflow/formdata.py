@@ -98,7 +98,7 @@ class FormData(BaseModel):
     Define_Region_of_Interest: Optional[DefineRegionOfInterest] = Field(
         None,
         alias="Define Region of Interest",
-        description="Define the region of interest for the aerial survey by uploading a geospatial file (GeoJSON, GeoPackage, or Shapefile) that contains the boundary of the area to be surveyed. This file will be loaded and processed to generate the survey lines.",
+        description="Define the region of interest for the aerial survey by uploading a geospatial file (GeoJSON, GeoPackage or GeoParquet) that contains the boundary of the area to be surveyed. This file will be loaded and processed to generate the survey lines.",
     )
     Draw_Aerial_Survey_Lines: Optional[DrawAerialSurveyLines] = Field(
         None,

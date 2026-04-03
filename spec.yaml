@@ -64,7 +64,7 @@ workflow:
 
   - title: Define Region of Interest
     type: task-group
-    description: Define the region of interest for the aerial survey by uploading a geospatial file (GeoJSON, GeoPackage, or Shapefile) that contains the boundary of the area to be surveyed. This file will be loaded and processed to generate the survey lines.
+    description: Define the region of interest for the aerial survey by uploading a geospatial file (GeoJSON, GeoPackage or GeoParquet) that contains the boundary of the area to be surveyed. This file will be loaded and processed to generate the survey lines.
     tasks:
       - name: null
         id: retrieve_file_params
