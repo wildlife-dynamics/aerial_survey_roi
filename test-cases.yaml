@@ -1,0 +1,30 @@
+all-grouper:
+  name: All Grouper
+  description: A demonstration of a workflow with no grouping.
+  params:
+    workflow_details:
+      description: ''
+      name: Custom
+    time_range:
+      timezone:
+        label: UTC
+        tzCode: UTC
+        name: UTC
+        utc: '+00:00'
+      time_format: '%d %b %Y %H:%M:%S'
+      since: '2026-02-03T10:14:00.000Z'
+      until: '2026-02-03T10:14:00.000Z'
+    configure_base_maps:
+      base_maps:
+        - url: >-
+            https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}
+          opacity: 1
+          max_zoom: 20
+    retrieve_file_params:
+      input_method:
+        url: >-
+          https://www.dropbox.com/scl/fi/14rcy4lkwp7xgewj3xf7k/mnc_conservancy.gpkg?rlkey=mtqo7ivxrnvjonm2z1zez6h6f&st=55vxskq6&dl=0
+    survey_lines:
+      direction: North South
+      spacing: 1500
+

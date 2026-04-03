@@ -1,12 +1,219 @@
-id:  # Unique workflow identifier (kebab-case)
-requirements: # Package dependencies with channels
+id: aerial_survey_roi
+
+requirements:
   - name: ecoscope-workflows-core
-    version: "0.18.0"
+    version: "0.22.17.*"
     channel: https://repo.prefix.dev/ecoscope-workflows/
 
-# List of tasks in execution order
+  - name: ecoscope-workflows-ext-ecoscope
+    version: "0.22.17.*"
+    channel: https://repo.prefix.dev/ecoscope-workflows/
+
+  - name: ecoscope-workflows-ext-custom
+    version: "0.0.39.*"
+    channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
+  - name: ecoscope-workflows-ext-ste
+    version: "0.0.18.*"
+    channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
+
+rjsf-overrides:
+  properties:
+    Draw Aerial Survey Lines.properties.survey_lines.properties.direction.title: "Survey Direction (degrees)"
+    Draw Aerial Survey Lines.properties.survey_lines.properties.direction.description: "Compass bearing the survey lines will run from the region of interest (0 = North, 90 = East)."
+    Draw Aerial Survey Lines.properties.survey_lines.properties.spacing.title: "Line Spacing (m)"
+    Draw Aerial Survey Lines.properties.survey_lines.properties.spacing.description: "Distance in metres between adjacent survey lines across the region of interest."
+
+task-instance-defaults:
+  skipif:
+    conditions:
+      - any_is_empty_df
+      - any_dependency_skipped
+
 workflow:
-  - name:  # Display name used for the configuration form UI
-    description:  # Description used for the configuration form
-    id:  # Unique task identifier (snake_case)
-    task:  # Function name from task library
+  - name: Set workflow details
+    id: workflow_details
+    task: set_workflow_details
+
+  # define workflow time range
+  - name: Time range
+    id: time_range
+    task: set_time_range
+
+  - name: Set groupers
+    id: groupers
+    task: set_groupers
+    partial:
+      groupers: []
+      
+  # Set basemaps connection 
+  - name: Configure base map layers
+    id: configure_base_maps
+    task: set_base_maps_pydeck
+    partial:
+      base_maps:
+        - url: >-
+            https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}
+          opacity: 1
+          max_zoom: 20
+        - url: >-
+            https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}
+          opacity: 0.15
+          max_zoom: 20
+
+  - title: Define Region of Interest
+    type: task-group
+    description: Define the region of interest for the aerial survey by uploading a geospatial file (GeoJSON, GeoPackage, or Shapefile) that contains the boundary of the area to be surveyed. This file will be loaded and processed to generate the survey lines.
+    tasks:
+      - name: null
+        id: retrieve_file_params
+        task: get_file_path
+        partial: 
+          output_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+
+  - name: load gdf 
+    id: load_gdf 
+    task: load_df 
+    partial:
+      file_path: ${{ workflow.retrieve_file_params.return }}
+      layer: null
+      deserialize_json: false
+
+  - name: Assign geom type to gdf 
+    id: assign_geom_type 
+    task: get_gdf_geom_type 
+    partial: 
+      gdf: ${{ workflow.load_gdf.return }}
+
+  - name: Generate layers for map 
+    id: generate_layers_map
+    task: create_deckgl_layer_from_gdf 
+    partial: 
+      gdf: ${{ workflow.assign_geom_type.return }}
+      style: 
+        get_fill_color: [85, 107, 47]
+        get_line_color: [85, 107, 47]
+        opacity: 0.15
+        stroked: true 
+        get_line_width: 1.25
+      legend: 
+        title: ""
+        values:
+          - label: Area of Interest
+            color: "#556b2f"
+
+  - title: Draw Aerial Survey Lines
+    type: task-group
+    description: Generate aerial survey lines across the defined region of interest based on the specified direction and spacing. The survey lines will be created as a geospatial dataframe and visualized on an interactive map.
+    tasks:
+      - name: null
+        id: survey_lines
+        task: draw_survey_lines
+        partial:
+          gdf: ${{ workflow.load_gdf.return }}
+
+  - name: Persist aerial survey as geopackage
+    id: persist_aerial_gdf
+    task: persist_df
+    partial:
+      filetype: "gpkg"
+      filename: aerial_survey
+      df: ${{ workflow.survey_lines.return }}
+      root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+
+  - name: Persist aerial survey as geoparquet
+    id: persist_aerial_gpq
+    task: persist_df
+    partial:
+      filetype: "geoparquet"
+      filename: aerial_survey
+      df: ${{ workflow.survey_lines.return }}
+      root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+
+  - name: Transform gdf to epsg 4326
+    id: transform_gdf
+    task: transform_gdf_crs 
+    partial:
+      gdf: ${{ workflow.survey_lines.return }}
+      crs: "EPSG:4326"
+
+  - name: Create Aerial Survey Lines
+    id: aerial_survey_polylines
+    task: create_geojson_layer
+    partial:
+      layer_style: 
+        filled: false 
+        stroked: true 
+        extruded: false 
+        wireframe: false
+        get_fill_color: [255, 255, 0]
+        get_line_color: [255, 255, 0]
+        opacity: 0.55
+        get_line_width: 1.15
+        get_elevation: 0
+        get_point_radius: 1
+        line_width_units: pixels 
+        line_width_scale: 1 
+        line_width_min_pixels: 1
+        line_width_max_pixels: 5
+      legend:
+        title: "Legend"
+        values:
+          - label: Aerial lines
+            color: "#FFFF00"
+      geodataframe: ${{ workflow.transform_gdf.return }}
+
+  - name: Zoom to gdf extent 
+    id: zoom_gdf_extent
+    task: view_state_deck_gdf
+    partial:
+      pitch: 0
+      bearing: 0 
+      gdf: ${{ workflow.load_gdf.return }}
+  
+  - name: Combine generated aerial survey lines with custom gdf 
+    id: combine_map_layers 
+    task: combine_deckgl_map_layers 
+    partial: 
+      static_layers: 
+        - ${{ workflow.generate_layers_map.return }}
+      grouped_layers: 
+        - ${{ workflow.aerial_survey_polylines.return }}
+    
+  - name: Draw Aerial Survey Lines Ecomap
+    id: draw_aerial_survey_lines_ecomap
+    task: draw_map
+    partial:
+      tile_layers: ${{ workflow.configure_base_maps.return }}
+      static: false
+      title: null
+      max_zoom: 10
+      legend_style: 
+        placement: bottom-right 
+      geo_layers: ${{ workflow.combine_map_layers.return }}
+      view_state: ${{ workflow.zoom_gdf_extent.return }}
+
+  - name: Persist Ecomaps
+    id: persist_ecomaps
+    task: persist_text
+    partial:
+      root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+      text: ${{ workflow.draw_aerial_survey_lines_ecomap.return }}
+      filename: aerial_survey.html
+  
+  - name: Create Ecomap Widgets
+    id: create_aerial_widgets
+    task : create_map_widget_single_view
+    partial: 
+      title: "Aerial Survey Lines"
+      data: ${{ workflow.persist_ecomaps.return }}
+
+  - name: Create Dashboard with Patrol Map Widgets 
+    id: patrol_dashboard
+    task: gather_dashboard
+    partial:
+      details: ${{ workflow.workflow_details.return }}
+      widgets: ${{ workflow.create_aerial_widgets.return }}
+      time_range: ${{ workflow.time_range.return }}
+      groupers: ${{ workflow.groupers.return }}
