@@ -44,7 +44,7 @@ hr { border: none; border-top: 1px solid #d8e8d8; margin: 2em 0; }
 <p>Before running the workflow, ensure you have:</p>
 <ul>
 <li>Access to an Ecoscope Workflows deployment (UI or API)</li>
-<li>A geospatial file defining your Region of Interest — GeoPackage (<code>.gpkg</code>), Shapefile, or GeoJSON. <strong>The file must contain polygon geometry.</strong></li>
+<li>A geospatial file defining your Region of Interest — GeoPackage (<code>.gpkg</code>), GeoJSON, or GeoParquet (<code>.geoparquet</code>). <strong>The file must contain polygon geometry.</strong></li>
 <li>The <code>ECOSCOPE_WORKFLOWS_RESULTS</code> environment variable set to a writable output directory on your deployment</li>
 </ul>
 <hr />
@@ -106,7 +106,7 @@ hr { border: none; border-top: 1px solid #d8e8d8; margin: 2em 0; }
 </tbody>
 </table>
 <ul>
-<li>Select <strong>Download from URL</strong> as the Input Method and paste a direct download link to your <code>.gpkg</code>, <code>.shp</code>, or <code>.geojson</code> file.</li>
+<li>Select <strong>Download from URL</strong> as the Input Method and paste a direct download link to your <code>.gpkg</code>, <code>.geojson</code>, or <code>.geoparquet</code> file.</li>
 <li>Any EPSG coordinate reference system is accepted — the workflow reprojects to EPSG:4326 automatically.</li>
 <li><strong>The file must contain polygon geometry.</strong> Point or line files will cause the workflow to fail.</li>
 </ul>

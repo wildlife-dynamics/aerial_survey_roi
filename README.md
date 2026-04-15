@@ -75,7 +75,7 @@ Upload or link to the boundary file for the area to be surveyed.
 | Local path | `/data/inputs/my_conservancy.gpkg` |
 
 - **Input Method**: Select `Download from URL` or upload a local file
-- **URL** *(if downloading)*: Paste the direct URL to your `.gpkg`, `.shp`, or `.geojson` file
+- **URL** *(if downloading)*: Paste the direct URL to your `.gpkg`, `.geojson`, or `.geoparquet` file
 
 #### Draw Aerial Survey Lines
 
