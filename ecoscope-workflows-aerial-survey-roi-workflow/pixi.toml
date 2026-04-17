@@ -35,6 +35,10 @@ channel = "https://repo.prefix.dev/ecoscope-workflows-custom/"
 version = "0.0.18.*"
 channel = "https://repo.prefix.dev/ecoscope-workflows-custom/"
 
+[dependencies.ecoscope-workflows-ext-mnc]
+version = "0.0.9.*"
+channel = "https://repo.prefix.dev/ecoscope-workflows-custom/"
+
 [feature.runner.dependencies.ecoscope-workflows-runner]
 version = "0.22.17.*"
 channel = "https://repo.prefix.dev/ecoscope-workflows/"

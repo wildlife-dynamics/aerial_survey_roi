@@ -26,6 +26,7 @@ from ecoscope_workflows_ext_custom.tasks.results import (
     set_base_maps_pydeck as set_base_maps_pydeck,
 )
 from ecoscope_workflows_ext_ecoscope.tasks.io import persist_df as persist_df
+from ecoscope_workflows_ext_mnc.tasks import filter_columns as filter_columns
 from ecoscope_workflows_ext_ste.tasks import (
     combine_deckgl_map_layers as combine_deckgl_map_layers,
 )
@@ -54,7 +55,8 @@ def main(params: Params):
         "assign_geom_type": ["load_gdf"],
         "generate_layers_map": ["assign_geom_type"],
         "survey_lines": ["load_gdf"],
-        "persist_aerial_gdf": ["survey_lines"],
+        "filter_column_gpkg": ["survey_lines"],
+        "persist_aerial_gdf": ["filter_column_gpkg"],
         "persist_aerial_gpq": ["survey_lines"],
         "transform_gdf": ["survey_lines"],
         "aerial_survey_polylines": ["transform_gdf"],
@@ -275,6 +277,30 @@ def main(params: Params):
             | (params_dict.get("survey_lines") or {}),
             method="call",
         ),
+        "filter_column_gpkg": Node(
+            async_task=filter_columns.validate()
+            .set_task_instance_id("filter_column_gpkg")
+            .handle_errors()
+            .with_tracing()
+            .skipif(
+                conditions=[
+                    any_is_empty_df,
+                    any_dependency_skipped,
+                ],
+                unpack_depth=1,
+            )
+            .set_executor("lithops"),
+            partial={
+                "df": DependsOn("survey_lines"),
+                "columns": None,
+                "exclude": [
+                    "fid",
+                    "FID",
+                ],
+            }
+            | (params_dict.get("filter_column_gpkg") or {}),
+            method="call",
+        ),
         "persist_aerial_gdf": Node(
             async_task=persist_df.validate()
             .set_task_instance_id("persist_aerial_gdf")
@@ -291,7 +317,7 @@ def main(params: Params):
             partial={
                 "filetype": "gpkg",
                 "filename": "aerial_survey",
-                "df": DependsOn("survey_lines"),
+                "df": DependsOn("filter_column_gpkg"),
                 "root_path": os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
             }
             | (params_dict.get("persist_aerial_gdf") or {}),

@@ -17,6 +17,10 @@ requirements:
     version: "0.0.18.*"
     channel: https://repo.prefix.dev/ecoscope-workflows-custom/
 
+  - name: ecoscope-workflows-ext-mnc
+    version: "0.0.9.*"
+    channel: https://repo.prefix.dev/ecoscope-workflows-custom/
+
 
 rjsf-overrides:
   properties:
@@ -113,13 +117,23 @@ workflow:
         partial:
           gdf: ${{ workflow.load_gdf.return }}
 
+  - name: Filter columns 
+    id: filter_column_gpkg
+    task: filter_columns 
+    partial: 
+      df: ${{ workflow.survey_lines.return }}
+      columns: null
+      exclude: 
+        - "fid"
+        - "FID" 
+
   - name: Persist aerial survey as geopackage
     id: persist_aerial_gdf
     task: persist_df
     partial:
       filetype: "gpkg"
       filename: aerial_survey
-      df: ${{ workflow.survey_lines.return }}
+      df: ${{ workflow.filter_column_gpkg.return }}
       root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
 
   - name: Persist aerial survey as geoparquet

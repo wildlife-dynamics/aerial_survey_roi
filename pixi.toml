@@ -19,6 +19,7 @@ hatch-vcs = "*"
 
 ecoscope-workflows-ext-ste = "0.0.18.*"
 ecoscope-workflows-ext-big-life = "0.0.8.*"
+ecoscope-workflows-ext-mnc ="0.0.9"
 ecoscope-workflows-core = "0.22.17.*"
 ecoscope-workflows-ext-custom = "0.0.39.*"
 

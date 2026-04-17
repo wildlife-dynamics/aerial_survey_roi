@@ -34,6 +34,7 @@ from ecoscope_workflows_ext_custom.tasks.results import (
     set_base_maps_pydeck as set_base_maps_pydeck,
 )
 from ecoscope_workflows_ext_ecoscope.tasks.io import persist_df as persist_df
+from ecoscope_workflows_ext_mnc.tasks import filter_columns as filter_columns
 from ecoscope_workflows_ext_ste.tasks import (
     combine_deckgl_map_layers as combine_deckgl_map_layers,
 )
@@ -234,6 +235,27 @@ def main(params: Params):
         .call()
     )
 
+    filter_column_gpkg = (
+        filter_columns.validate()
+        .set_task_instance_id("filter_column_gpkg")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=survey_lines,
+            columns=None,
+            exclude=["fid", "FID"],
+            **(params_dict.get("filter_column_gpkg") or {}),
+        )
+        .call()
+    )
+
     persist_aerial_gdf = (
         persist_df.validate()
         .set_task_instance_id("persist_aerial_gdf")
@@ -249,7 +271,7 @@ def main(params: Params):
         .partial(
             filetype="gpkg",
             filename="aerial_survey",
-            df=survey_lines,
+            df=filter_column_gpkg,
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
             **(params_dict.get("persist_aerial_gdf") or {}),
         )
